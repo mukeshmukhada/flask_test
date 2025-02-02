@@ -1,25 +1,40 @@
 from flask import Flask, send_file, request
-import logging
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 
-# Configure logging
-logging.basicConfig(filename="access.log", level=logging.INFO, format="%(asctime)s - %(message)s")
+# Use the PostgreSQL connection string from Render
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@hostname:port/dbname")
+
+# Configure SQLAlchemy
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+
+# Define the Logs table
+class AccessLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user_agent = db.Column(db.String(500))
+
+# Create the database tables (only needed once)
+with app.app_context():
+    db.create_all()
 
 @app.route("/image")
 def serve_image():
-    # Get client details
     ip = request.remote_addr
     user_agent = request.headers.get("User-Agent")
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Save log to the database
+    log_entry = AccessLog(ip=ip, user_agent=user_agent)
+    db.session.add(log_entry)
+    db.session.commit()
 
-    # Log the access
-    log_message = f"Access from {ip} | Time: {timestamp} | User-Agent: {user_agent}"
-    app.logger.info(log_message)
-
-    # Serve the image
     return send_file("image.jpg", mimetype="image/jpeg")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
