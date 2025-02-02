@@ -35,6 +35,12 @@ def serve_image():
     db.session.commit()
 
     return send_file("image.jpg", mimetype="image/jpeg")
+    
+@app.route("/logs")
+def view_logs():
+    logs = AccessLog.query.order_by(AccessLog.timestamp.desc()).limit(10).all()
+    return "<br>".join([f"{log.timestamp} - {log.ip} - {log.user_agent}" for log in logs])
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
