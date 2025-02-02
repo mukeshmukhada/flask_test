@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 # Use the PostgreSQL connection string from Render
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://image_logs_db_user:o7Bz04na8qRaMpHwDNCyp4V3nKEpgbMw@dpg-cufjhl3tq21c73f6ldog-a/image_logs_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@hostname:port/dbname")
 
 # Configure SQLAlchemy
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
@@ -26,21 +26,22 @@ with app.app_context():
 
 @app.route("/image")
 def serve_image():
-    ip = request.remote_addr
+    # Get real client IP from X-Forwarded-For header
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
     user_agent = request.headers.get("User-Agent")
-    
+
     # Save log to the database
     log_entry = AccessLog(ip=ip, user_agent=user_agent)
     db.session.add(log_entry)
     db.session.commit()
 
     return send_file("image.jpg", mimetype="image/jpeg")
-    
+
+# Route to view the last 10 logs
 @app.route("/logs")
 def view_logs():
     logs = AccessLog.query.order_by(AccessLog.timestamp.desc()).limit(10).all()
     return "<br>".join([f"{log.timestamp} - {log.ip} - {log.user_agent}" for log in logs])
 
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
