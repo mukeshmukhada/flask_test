@@ -1,35 +1,25 @@
 from flask import Flask, send_file, request
+import logging
 from datetime import datetime
-import os
 
 app = Flask(__name__)
 
-# Set the path to the image you want to serve
-IMAGE_PATH = "img_1.png"  # Replace with the actual path to your image
-LOG_FILE = 'access_logs.txt'
+# Configure logging
+logging.basicConfig(filename="access.log", level=logging.INFO, format="%(asctime)s - %(message)s")
 
-# Create a helper function to log access
-def log_access(ip, user_agent):
-    log_data = {
-        "ip": ip,
-        "user_agent": user_agent,
-        "timestamp": datetime.now().isoformat()
-    }
-    with open(LOG_FILE, 'a') as log_file:
-        log_file.write(f"{log_data}\n")
-
-@app.route('/image')
+@app.route("/image")
 def serve_image():
-    # Get access info
+    # Get client details
     ip = request.remote_addr
-    user_agent = request.headers.get('User-Agent')
+    user_agent = request.headers.get("User-Agent")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Log the access
-    log_access(ip, user_agent)
+    log_message = f"Access from {ip} | Time: {timestamp} | User-Agent: {user_agent}"
+    app.logger.info(log_message)
 
-    # Send the image
-    return send_file(IMAGE_PATH, mimetype='image/jpeg')
+    # Serve the image
+    return send_file("image.jpg", mimetype="image/jpeg")
 
-if __name__ == '__main__':
-    # Run the Flask application
-    app.run(host='0.0.0.0', port=5000,debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
