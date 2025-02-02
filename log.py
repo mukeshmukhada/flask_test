@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # Set the path to the image you want to serve
-IMAGE_PATH = r"C:\Users\Admin\Desktop\Shyamal\Python\Flask\img_1.png"  # Replace with the actual path to your image
+IMAGE_PATH = "img_1.png"  # Replace with the actual path to your image
 LOG_FILE = 'access_logs.txt'
 
 # Create a helper function to log access
